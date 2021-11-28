@@ -1,0 +1,9 @@
+type Claim @entity {
+  id: ID!
+  claimer: Bytes!
+  propoertyId: String!
+  propertyType: String!
+  method: String
+  evidence: String
+  removed: Boolean!
+}
