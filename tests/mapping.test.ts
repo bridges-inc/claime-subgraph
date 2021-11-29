@@ -1,7 +1,16 @@
 import { dataSource } from '@graphprotocol/graph-ts'
 import { assert, clearStore, test } from 'matchstick-as/assembly/index'
-import { handleClaimUpdated, idFromUpdatedEvent } from '../src/mapping'
-import { ClaimEventPayload, newClaimUpdatedEvent } from './utils'
+import {
+  handleClaimRemoved,
+  handleClaimUpdated,
+  idFromRemovedEvent,
+  idFromUpdatedEvent,
+} from '../src/mapping'
+import {
+  ClaimEventPayload,
+  newClaimRemovedEvent,
+  newClaimUpdatedEvent,
+} from './utils'
 
 const network = dataSource.network()
 const claimerAddress = '0xcdfc500f7f0fce1278aecb0340b523cd55b3ebbb'
@@ -94,5 +103,45 @@ test('Can mappings with existing claim updated events', () => {
     'evidence',
     updatedClaim.evidence,
   )
+  clearStore()
+})
+
+test('Can generate the same id for deleted and updated events, if the claims are the same', () => {
+  const claim = newClaimEventPayload()
+  const updatedEvent = newClaimUpdatedEvent(claimerAddress, claim)
+  const removeedEvent = newClaimRemovedEvent(claimerAddress, claim)
+  assert.stringEquals(
+    idFromUpdatedEvent(network, updatedEvent),
+    idFromRemovedEvent(network, removeedEvent),
+  )
+})
+
+test('Can mappings with existing claim removed events', () => {
+  const claim = newClaimEventPayload()
+  const updatedEvent = newClaimUpdatedEvent(claimerAddress, claim)
+  handleClaimUpdated(updatedEvent)
+  assert.fieldEquals(
+    'Claim',
+    idFromUpdatedEvent(network, updatedEvent),
+    'removed',
+    'false',
+  )
+  const removedEvent = newClaimRemovedEvent(claimerAddress, claim)
+  handleClaimRemoved(removedEvent)
+  assert.fieldEquals(
+    'Claim',
+    idFromRemovedEvent(network, removedEvent),
+    'removed',
+    'true',
+  )
+  clearStore()
+})
+
+test('Ignore a removed event of an unknown claim', () => {
+  const claim = newClaimEventPayload()
+  const removedEvent = newClaimRemovedEvent(claimerAddress, claim)
+  assert.notInStore('Claim', idFromRemovedEvent(network, removedEvent))
+  handleClaimRemoved(removedEvent)
+  assert.notInStore('Claim', idFromRemovedEvent(network, removedEvent))
   clearStore()
 })

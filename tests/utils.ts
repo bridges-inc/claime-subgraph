@@ -1,6 +1,6 @@
 import { Address, ethereum } from '@graphprotocol/graph-ts'
 import { newMockEvent } from 'matchstick-as/assembly/index'
-import { ClaimUpdated } from '../generated/Claime/Claime'
+import { ClaimRemoved, ClaimUpdated } from '../generated/Claime/Claime'
 
 export class ClaimEventPayload {
   propertyType: string
@@ -27,6 +27,23 @@ export function newClaimUpdatedEvent(
   return updatedEvent
 }
 
+export function newClaimRemovedEvent(
+  claimerAddress: string,
+  claim: ClaimEventPayload,
+): ClaimRemoved {
+  const event = newMockEvent()
+  const removedEvent = new ClaimRemoved(
+    event.address,
+    event.logIndex,
+    event.transactionLogIndex,
+    event.logType,
+    event.block,
+    event.transaction,
+    [],
+  )
+  setEventParam(removedEvent, claimerAddress, claim)
+  return removedEvent
+}
 export function setEventParam(
   event: ethereum.Event,
   claimerAddress: string,
