@@ -5,7 +5,7 @@ import { Claim } from '../generated/schema'
 const DELIMITER = '|'
 
 export function handleClaimRemoved(event: ClaimRemoved): void {
-  const claimId = idFromRemovedEvent(event)
+  const claimId = idFromRemovedEvent(dataSource.network(), event)
   const claim = Claim.load(claimId)
   if (!claim) return
   claim.removed = true
@@ -13,42 +13,43 @@ export function handleClaimRemoved(event: ClaimRemoved): void {
 }
 
 export function handleClaimUpdated(event: ClaimUpdated): void {
-  const claimer = event.params.claimer
-  const data = event.params.claim
-  const claimId = idFromUpdatedEvent(event)
+  const network = dataSource.network()
+  const claimId = idFromUpdatedEvent(network, event)
   let claim = Claim.load(claimId)
+  const data = event.params.claim
   if (claim == null) {
     claim = new Claim(claimId)
+    claim.claimer = event.params.claimer
+    claim.propertyType = data.propertyType
+    claim.propoertyId = data.propertyId
+    claim.method = data.method
+    claim.network = network
   }
-  claim.propoertyId = data.propertyId
-  claim.propertyType = data.propertyType
-  claim.method = data.method
   claim.evidence = data.evidence
-  claim.claimer = claimer
   claim.removed = false
   claim.save()
 }
 
-function idFromRemovedEvent(event: ClaimRemoved): string {
+function idFromRemovedEvent(network: string, event: ClaimRemoved): string {
   const claimer = event.params.claimer
   const data = event.params.claim
   return [
-    dataSource.network(),
     claimer.toHexString(),
-    data.propertyId,
     data.propertyType,
+    data.propertyId,
     data.method,
+    network,
   ].join(DELIMITER)
 }
 
-function idFromUpdatedEvent(event: ClaimUpdated): string {
+function idFromUpdatedEvent(network: string, event: ClaimUpdated): string {
   const claimer = event.params.claimer
   const data = event.params.claim
   return [
-    dataSource.network(),
     claimer.toHexString(),
-    data.propertyId,
     data.propertyType,
+    data.propertyId,
     data.method,
+    network,
   ].join(DELIMITER)
 }

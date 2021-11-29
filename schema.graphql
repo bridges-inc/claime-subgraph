@@ -1,9 +1,10 @@
 type Claim @entity {
   id: ID!
   claimer: Bytes!
-  propoertyId: String!
   propertyType: String!
+  propoertyId: String!
   method: String
   evidence: String
+  network: String!
   removed: Boolean!
 }
