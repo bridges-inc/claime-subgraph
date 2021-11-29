@@ -21,7 +21,7 @@ export function handleClaimUpdated(event: ClaimUpdated): void {
     claim = new Claim(claimId)
     claim.claimer = event.params.claimer
     claim.propertyType = data.propertyType
-    claim.propoertyId = data.propertyId
+    claim.propertyId = data.propertyId
     claim.method = data.method
     claim.network = network
   }
@@ -49,5 +49,13 @@ export function idFromUpdatedEvent(
   network: string,
   event: ClaimUpdated,
 ): string {
-  return 'test'
+  const claimer = event.params.claimer
+  const data = event.params.claim
+  return [
+    claimer.toHexString(),
+    data.propertyType,
+    data.propertyId,
+    data.method,
+    network,
+  ].join(DELIMITER)
 }

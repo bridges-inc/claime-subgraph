@@ -2,7 +2,7 @@ type Claim @entity {
   id: ID!
   claimer: Bytes!
   propertyType: String!
-  propoertyId: String!
+  propertyId: String!
   method: String
   evidence: String
   network: String!

@@ -1,75 +1,98 @@
-import { ethereum } from '@graphprotocol/graph-ts'
-import { log, newMockEvent, test } from 'matchstick-as/assembly/index'
-import { ClaimUpdated } from '../generated/Claime/Claime'
-import { handleClaimUpdated } from '../src/mapping'
-class ClaimEventPayload {
-  propertyType: string
-  propertyId: string
-  method: string
-  evidence: string
-}
-const network = 'test' //dataSource.network()
-const claimerAddress = '0x1'
+import { dataSource } from '@graphprotocol/graph-ts'
+import { assert, clearStore, test } from 'matchstick-as/assembly/index'
+import { handleClaimUpdated, idFromUpdatedEvent } from '../src/mapping'
+import { ClaimEventPayload, newClaimUpdatedEvent } from './utils'
 
-test('Can mappings with new claim updated events', () => {
-  const claim: ClaimEventPayload = {
-    propertyType: 'Domain',
-    propertyId: 'example.com',
-    method: 'TXT',
-    evidence: '',
+const network = dataSource.network()
+const claimerAddress = '0xcdfc500f7f0fce1278aecb0340b523cd55b3ebbb'
+
+function newClaimEventPayload(): ClaimEventPayload {
+  return {
+    propertyType: 'Twitter',
+    propertyId: 'example',
+    method: 'Tweet',
+    evidence: '1234567890',
   }
-  const event = newClaimUpdatedEvent(claimerAddress, claim)
-  handleClaimUpdated(event)
-  log.info('claim', [''])
+}
 
-  // assert.fieldEquals(
-  //   'Claim',
-  //   idFromUpdatedEvent(network, event),
-  //   'propetyType',
-  //   claim.propertyType,
-  // )
-  // clearStore()
+test('Can generate id from new claim updated events', () => {
+  const claim = newClaimEventPayload()
+  const updatedEvent = newClaimUpdatedEvent(claimerAddress, claim)
+  assert.stringEquals(
+    '0xcdfc500f7f0fce1278aecb0340b523cd55b3ebbb|Twitter|example|Tweet|mainnet',
+    idFromUpdatedEvent(network, updatedEvent),
+  )
 })
 
-function newClaimUpdatedEvent(
-  claimerAddress: string,
-  claim: ClaimEventPayload,
-): ClaimUpdated {
-  const event = newMockEvent()
-  const updatedEvent = new ClaimUpdated(
-    event.address,
-    event.logIndex,
-    event.transactionLogIndex,
-    event.logType,
-    event.block,
-    event.transaction,
-    event.parameters,
+test('Can generate the same id if claimerAddress, propertyType, propertyId, method and network are the same', () => {
+  const claim = newClaimEventPayload()
+  const updatedEvent = newClaimUpdatedEvent(claimerAddress, claim)
+  const updatedClaim = newClaimEventPayload()
+  updatedClaim.evidence = claim.evidence + '2'
+  const updatedEvent2 = newClaimUpdatedEvent(claimerAddress, updatedClaim)
+  assert.stringEquals(
+    idFromUpdatedEvent(network, updatedEvent),
+    idFromUpdatedEvent(network, updatedEvent2),
   )
-  setEventParam(updatedEvent, claimerAddress, claim)
-  return updatedEvent
-}
+})
 
-function setEventParam(
-  event: ethereum.Event,
-  claimerAddress: string,
-  claim: ClaimEventPayload,
-): void {
-  const addressParam = new ethereum.EventParam(
-    'claimer',
-    ethereum.Value.fromString(claimerAddress),
+test('Can mappings with new claim updated events', () => {
+  const claim = newClaimEventPayload()
+  const updatedEvent = newClaimUpdatedEvent(claimerAddress, claim)
+  handleClaimUpdated(updatedEvent)
+  const id = idFromUpdatedEvent(network, updatedEvent)
+  assert.fieldEquals('Claim', id, 'propertyType', claim.propertyType)
+  assert.fieldEquals('Claim', id, 'propertyId', claim.propertyId)
+  assert.fieldEquals('Claim', id, 'method', claim.method)
+  assert.fieldEquals('Claim', id, 'evidence', claim.evidence)
+  assert.fieldEquals('Claim', id, 'removed', 'false')
+  clearStore()
+})
+
+test('Can mappings with new claims updated events', () => {
+  const claim = newClaimEventPayload()
+  const updatedEvent = newClaimUpdatedEvent(claimerAddress, claim)
+  handleClaimUpdated(updatedEvent)
+
+  const claim2 = newClaimEventPayload()
+  claim2.propertyId = claim.propertyId + '2'
+  const updatedEvent2 = newClaimUpdatedEvent(claimerAddress, claim2)
+  handleClaimUpdated(updatedEvent2)
+
+  assert.fieldEquals(
+    'Claim',
+    idFromUpdatedEvent(network, updatedEvent),
+    'propertyId',
+    claim.propertyId,
   )
-  event.parameters = new Array()
-  event.parameters.push(
-    new ethereum.EventParam(
-      'claimer',
-      ethereum.Value.fromString(claimerAddress),
-    ),
+  assert.fieldEquals(
+    'Claim',
+    idFromUpdatedEvent(network, updatedEvent2),
+    'propertyId',
+    claim2.propertyId,
   )
-  const tp = new ethereum.Tuple(4)
-  tp.push(ethereum.Value.fromString(claim.propertyType))
-  tp.push(ethereum.Value.fromString(claim.propertyId))
-  tp.push(ethereum.Value.fromString(claim.method))
-  tp.push(ethereum.Value.fromString(claim.evidence))
-  const tuple = ethereum.Value.fromTuple(tp)
-  event.parameters.push(new ethereum.EventParam('claim', tuple))
-}
+  clearStore()
+})
+
+test('Can mappings with existing claim updated events', () => {
+  const claim = newClaimEventPayload()
+  const updatedEvent = newClaimUpdatedEvent(claimerAddress, claim)
+  handleClaimUpdated(updatedEvent)
+  assert.fieldEquals(
+    'Claim',
+    idFromUpdatedEvent(network, updatedEvent),
+    'evidence',
+    claim.evidence,
+  )
+  const updatedClaim = newClaimEventPayload()
+  updatedClaim.evidence = '2'
+  const updatedEvent2 = newClaimUpdatedEvent(claimerAddress, updatedClaim)
+  handleClaimUpdated(updatedEvent2)
+  assert.fieldEquals(
+    'Claim',
+    idFromUpdatedEvent(network, updatedEvent2),
+    'evidence',
+    updatedClaim.evidence,
+  )
+  clearStore()
+})
