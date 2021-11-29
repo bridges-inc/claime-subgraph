@@ -1,0 +1,26 @@
+specVersion: 0.0.2
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: Claime
+    network: rinkeby
+    source:
+      address: '0xD721AF405fb939fFeBF7B44b294D9D02A232b359'
+      abi: Claime
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - ClaimRemoved
+        - ClaimUpdated
+      abis:
+        - name: Claime
+          file: ./abis/Claime.json
+      eventHandlers:
+        - event: ClaimRemoved(address,(string,string,string,string))
+          handler: handleClaimRemoved
+        - event: ClaimUpdated(address,(string,string,string,string))
+          handler: handleClaimUpdated
+      file: ./src/mapping.ts

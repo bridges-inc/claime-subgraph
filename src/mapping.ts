@@ -17,11 +17,11 @@ export function handleClaimUpdated(event: ClaimUpdated): void {
   const claimId = idFromUpdatedEvent(network, event)
   let claim = Claim.load(claimId)
   const data = event.params.claim
-  if (claim == null) {
+  if (!claim) {
     claim = new Claim(claimId)
     claim.claimer = event.params.claimer
     claim.propertyType = data.propertyType
-    claim.propoertyId = data.propertyId
+    claim.propertyId = data.propertyId
     claim.method = data.method
     claim.network = network
   }
@@ -30,7 +30,10 @@ export function handleClaimUpdated(event: ClaimUpdated): void {
   claim.save()
 }
 
-function idFromRemovedEvent(network: string, event: ClaimRemoved): string {
+export function idFromRemovedEvent(
+  network: string,
+  event: ClaimRemoved,
+): string {
   const claimer = event.params.claimer
   const data = event.params.claim
   return [
@@ -42,7 +45,10 @@ function idFromRemovedEvent(network: string, event: ClaimRemoved): string {
   ].join(DELIMITER)
 }
 
-function idFromUpdatedEvent(network: string, event: ClaimUpdated): string {
+export function idFromUpdatedEvent(
+  network: string,
+  event: ClaimUpdated,
+): string {
   const claimer = event.params.claimer
   const data = event.params.claim
   return [
