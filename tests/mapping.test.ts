@@ -3,7 +3,7 @@ import { assert, newMockEvent, test } from 'matchstick-as/assembly/index'
 import { ClaimUpdated } from '../generated/Claime/Claime'
 import { idFromUpdatedEvent } from '../src/mapping'
 
-interface ClaimEventPayload {
+class ClaimEventPayload {
   propertyType: string
   propertyId: string
   method: string
@@ -12,13 +12,14 @@ interface ClaimEventPayload {
 export function runTests(): void {
   const network = 'test' //dataSource.network()
   const claimerAddress = '0x1'
-  const claim: ClaimEventPayload = {
-    propertyType: 'Domain',
-    propertyId: 'example.com',
-    method: 'TXT',
-    evidence: '',
-  }
+
   test('Can mappings with new claim updated events', () => {
+    const claim: ClaimEventPayload = {
+      propertyType: 'Domain',
+      propertyId: 'example.com',
+      method: 'TXT',
+      evidence: '',
+    }
     const event = newClaimUpdatedEvent(claimerAddress, claim)
     // handleClaimUpdated(event)
     assert.stringEquals(
@@ -60,18 +61,15 @@ function setEventParam(
 ): void {
   const addressParam = new ethereum.EventParam(
     'claimer',
-    ethereum.Value.fromAddress(Address.fromHexString(claimerAddress)),
+    ethereum.Value.fromAddress(Address.fromString(claimerAddress)),
   )
-  const claimParam = new ethereum.EventParam(
-    'claim',
-    ethereum.Value.fromTuple(
-      new ethereum.Tuple(4).concat([
-        ethereum.Value.fromString(claim.propertyType),
-        ethereum.Value.fromString(claim.propertyId),
-        ethereum.Value.fromString(claim.method),
-        ethereum.Value.fromString(claim.evidence),
-      ]),
-    ),
-  )
+
+  const tp = new ethereum.Tuple(4)
+  tp.push(ethereum.Value.fromString(claim.propertyType))
+  tp.push(ethereum.Value.fromString(claim.propertyId))
+  tp.push(ethereum.Value.fromString(claim.method))
+  tp.push(ethereum.Value.fromString(claim.evidence))
+  const tuple = ethereum.Value.fromTuple(tp)
+  const claimParam = new ethereum.EventParam('claim', tuple)
   event.parameters.concat([addressParam, claimParam])
 }
